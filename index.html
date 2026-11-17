@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>마감노트 — 대학생 과제·일정 관리</title>
+  <style>
+    :root {
+      --bg: #F7F8FA;
+      --surface: #FFFFFF;
+      --surface-muted: #F8FAFC;
+      --border: #E2E6EC;
+      --border-urgent: #FCA5A5;
+      --bg-urgent: #FEF2F2;
+      --text: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #64748B;
+      --accent: #1D4ED8;
+      --accent-hover: #1E40AF;
+      --danger: #DC2626;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto; display: flex;
+      align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .container {
+      max-width: 1200px; margin: 0 auto; padding: 24px 16px 72px;
+      display: grid; grid-template-columns: 350px 1fr; gap: 24px; align-items: start;
+    }
+    @media (max-width: 920px) { .container { grid-template-columns: 1fr; padding: 16px 14px 48px; } }
+    .stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .panel-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .field { margin-bottom: 14px; }
+    label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    input[type="text"], input[type="date"], input[type="search"], select, textarea {
+      width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 13.5px; font-family: inherit; color: var(--text); background: var(--surface);
+    }
+    textarea { min-height: 62px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .seg-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: #F1F5F9; padding: 4px; border-radius: 10px; }
+    .seg-btn {
+      min-height: 36px; border: none; border-radius: 8px; background: transparent;
+      font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;
+    }
+    .seg-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(15,23,42,0.08); }
+    .btn-primary {
+      width: 100%; min-height: 44px; border: none; border-radius: 10px; background: var(--accent);
+      color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn {
+      min-height: 36px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--surface); font-size: 12.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer;
+    }
+    .btn:hover { background: #F8FAFC; color: var(--text); }
+    .btn.active { background: #0F172A; color: #fff; border-color: #0F172A; }
+    .btn.accent { background: #EFF6FF; color: #1E40AF; border-color: #BFDBFE; }
+    .course-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .course-chip {
+      padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); background: #F8FAFC;
+      font-size: 12px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    }
+    .swatch { width: 5px; height: 12px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+    .course-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #F1F5F9; font-size: 13.5px; }
+    .course-memo-sub { font-size: 11.5px; color: var(--text-muted); padding: 2px 0 8px 13px; border-bottom: 1px solid #F1F5F9; white-space: pre-wrap; word-break: break-word; }
+    .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    @media (max-width: 640px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
+    .stat-item { padding: 14px 16px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .stat-val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .stat-val.danger { color: var(--danger); }
+    .tabs-bar { display: inline-flex; gap: 4px; padding: 4px; background: #E2E8F0; border-radius: 11px; }
+    .tab-btn { min-height: 36px; padding: 0 16px; border: none; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+    .tab-btn.active { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(15,23,42,0.08); }
+    .filter-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .week-cal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .week-cal-head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; }
+    .week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .week-col { border-right: 1px solid var(--border); min-height: 130px; display: flex; flex-direction: column; }
+    .week-col:last-child { border-right: none; }
+    .week-col-head { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; font-size: 11.5px; font-weight: 700; display: flex; justify-content: space-between; }
+    .week-col.today { background: #EFF6FF; }
+    .week-col-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .week-item { border-radius: 8px; padding: 6px; border: 1px solid var(--border); font-size: 11.5px; cursor: pointer; }
+    .week-item.completed { opacity: 0.5; text-decoration: line-through; }
+    @media (max-width: 760px) {
+      .week-grid { grid-template-columns: 1fr; }
+      .week-col { border-right: none; border-bottom: 1px solid var(--border); min-height: auto; }
+      .week-col:last-child { border-bottom: none; }
+    }
+    .cards-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    @media (max-width: 680px) { .cards-grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; transition: opacity 0.18s ease;
+    }
+    .card.urgent { border-color: var(--border-urgent); background: var(--bg-urgent); }
+    .card.completed { opacity: 0.48; background: var(--surface-muted); }
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .check-wrap { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+    .check-btn {
+      width: 24px; height: 24px; min-width: 24px; margin-top: 2px; border-radius: 7px;
+      border: 1.5px solid #94A3B8; background: #fff; cursor: pointer; display: inline-flex;
+      align-items: center; justify-content: center; font-size: 14px; color: #fff;
+    }
+    .card.completed .check-btn { background: #0F172A; border-color: #0F172A; }
+    .card-title { font-size: 15px; font-weight: 600; color: var(--text); word-break: keep-all; }
+    .card.completed .card-title { text-decoration: line-through; color: var(--text-muted); }
+    .dday-box { text-align: right; flex-shrink: 0; }
+    .dday-val { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .dday-val.urgent { color: var(--danger); }
+    .dday-sub { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .dday-sub.urgent { color: var(--danger); }
+    .memo-text { font-size: 12px; color: var(--text-secondary); margin-top: 8px; white-space: pre-wrap; word-break: break-word; line-height: 1.45; }
+    .team-box { margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #F8FAFC; }
+    .team-row { display: grid; grid-template-columns: 84px 1fr; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #E2E8F0; font-size: 12px; }
+    .team-row:last-child { border-bottom: none; }
+    .team-form-row { display: grid; grid-template-columns: 90px 1fr 32px; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding-top: 12px; border-top: 1px solid rgba(15, 23, 42, 0.06); font-size: 12.5px; color: var(--text-secondary);
+    }
+    .txt-btn { min-height: 30px; padding: 0 7px; border: none; background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; }
+    .txt-btn:hover { color: var(--text); }
+    .txt-btn.del:hover { color: var(--danger); }
+    .empty { background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); padding: 40px 20px; text-align: center; color: var(--text-muted); grid-column: 1 / -1; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+    .modal-backdrop.open { display: flex; }
+    .modal-box { width: 100%; max-width: 440px; background: #fff; border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18); max-height: 85vh; overflow-y: auto; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60; background: #0F172A; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; display: none; box-shadow: 0 10px 25px rgba(15,23,42,0.2); }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">마감노트</div>
+      <div class="toolbar">
+        <button type="button" id="openSyllabusBtn" class="btn accent">강의계획서에서 가져오기</button>
+        <button type="button" id="exportIcsBtn" class="btn">캘린더로 내보내기</button>
+        <button type="button" id="resetSampleBtn" class="btn">예시 데이터 초기화</button>
+        <button type="button" id="clearAllBtn" class="btn">전체 비우기</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-title">
+          <span id="formHeading">새 과제 등록</span>
+          <button type="button" id="cancelEditBtn" class="txt-btn" style="display:none;">취소</button>
+        </div>
+        <form id="taskForm">
+          <div class="field">
+            <label for="courseInput">과목명</label>
+            <input id="courseInput" type="text" placeholder="예: 운영체제" required />
+            <div class="course-chips" id="courseChips"></div>
+          </div>
+          <div class="field">
+            <label for="titleInput">과제명</label>
+            <input id="titleInput" type="text" placeholder="예: 프로세스 스케줄링 리포트" required />
+          </div>
+          <div class="field">
+            <label for="dueInput">마감일</label>
+            <input id="dueInput" type="date" required />
+          </div>
+          <div class="field">
+            <label>중요도</label>
+            <div class="seg-group" id="priorityGroup">
+              <button type="button" class="seg-btn" data-val="high">상</button>
+              <button type="button" class="seg-btn active" data-val="medium">중</button>
+              <button type="button" class="seg-btn" data-val="low">하</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>과제 유형</label>
+            <div class="seg-group" style="grid-template-columns: repeat(2, 1fr);" id="typeGroup">
+              <button type="button" class="seg-btn active" data-type="single">개인 과제</button>
+              <button type="button" class="seg-btn" data-type="group">조별과제</button>
+            </div>
+          </div>
+          <div class="field" id="teamBox" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label style="margin-bottom:0;">조원·역할 분담표</label>
+              <button type="button" id="addMemberBtn" class="txt-btn" style="color:#1D4ED8;">+ 조원 추가</button>
+            </div>
+            <div id="teamRows"></div>
+          </div>
+          <div class="field">
+            <label for="memoInput">메모 (선택)</label>
+            <textarea id="memoInput" rows="2" placeholder="제출 형식, 참고 자료, 감점 기준 등을 적어 두세요"></textarea>
+          </div>
+          <button type="submit" id="submitBtn" class="btn-primary">과제 추가하기</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">수강 과목 관리</h2>
+        <form id="courseForm" style="display:flex;gap:8px;margin-bottom:10px;">
+          <input id="newCourseInput" type="text" placeholder="새 과목명 입력" />
+          <button type="submit" class="btn active" style="flex-shrink:0;">과목 추가</button>
+        </form>
+        <div id="courseManagerList"></div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <div class="stats-bar" id="statsBar"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div class="tabs-bar" id="filterRow">
+          <button type="button" class="tab-btn" data-filter="week">이번 주</button>
+          <button type="button" class="tab-btn active" data-filter="all">전체</button>
+          <button type="button" class="tab-btn" data-filter="completed">완료</button>
+        </div>
+        <button type="button" id="toggleCalBtn" class="btn active">주간 달력 숨기기</button>
+      </div>
+      <input id="searchInput" type="search" placeholder="과목명, 과제명, 메모 또는 조원 검색" />
+      <div class="filter-scroll" id="courseFilterRow"></div>
+      <div id="courseMemoBanner" class="panel" style="display:none;padding:14px 16px;"></div>
+      <section class="week-cal" id="weekCal"></section>
+      <div class="cards-grid" id="cardsGrid"></div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="confirmModal" role="alertdialog" aria-modal="true">
+    <div class="modal-box">
+      <h3 style="font-size:16px;font-weight:700;" id="confirmTitle">확인</h3>
+      <p style="font-size:13.5px;color:#475569;margin-top:8px;" id="confirmDesc"></p>
+      <textarea id="memoModalInput" rows="3" placeholder="메모를 입력하세요 (비워 두고 저장하면 삭제)" style="display:none;margin-top:12px;"></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+        <button type="button" id="confirmCancelBtn" class="btn">취소</button>
+        <button type="button" id="confirmOkBtn" class="btn" style="background:#DC2626;color:#fff;border-color:#DC2626;">삭제하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="syllabusModal" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width:560px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="font-size:16px;font-weight:700;">강의계획서에서 가져오기</h3>
+        <button type="button" id="closeSyllabusBtn" class="txt-btn">닫기</button>
+      </div>
+      <p style="font-size:12.5px;color:#64748B;margin-bottom:10px;">과제 일정 문장을 붙여넣거나 CSV 파일을 불러와 분석하세요. 연도가 없는 날짜는 올해로 자동 처리됩니다.</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+        <input id="syllabusCourseInput" type="text" placeholder="기본 과목명 (선택, 예: 운영체제)" style="flex:1;" />
+        <label class="btn" style="display:inline-flex;align-items:center;margin-bottom:0;">
+          CSV 불러오기
+          <input id="csvFileInput" type="file" accept=".csv,text/csv,text/plain" style="display:none;" />
+        </label>
+      </div>
+      <textarea id="syllabusText" rows="5" placeholder="예:&#10;[운영체제] CPU 스케줄링 구현 과제 11/28 마감&#10;데이터베이스 12월 4일 ER 다이어그램 제출"></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button type="button" id="analyzeSyllabusBtn" class="btn active">분석하기</button>
+      </div>
+      <div id="syllabusPreview" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastBox"></div>
+
+  <script>
+    (function() {
+      var STORAGE_KEY = "campus_deadline_assignments_v1";
+      var COURSES_KEY = "campus_deadline_courses_v1";
+      var COURSE_MEMOS_KEY = "campus_deadline_course_memos_v1";
+      var DEFAULT_COURSES = ["운영체제", "데이터베이스", "소프트웨어공학", "선형대수학", "영어회화 II", "컴퓨터네트워크"];
+      var DEFAULT_COURSE_MEMOS = {
+        "운영체제": "실습실 304호 · 지각 제출 시 하루 -10% 감점",
+        "데이터베이스": "GitHub 저장소 및 ER 다이어그램 PDF 함께 제출"
+      };
+      var PALETTE = [
+        { hex: "#2563EB", bg: "#EFF6FF", bd: "#BFDBFE" },
+        { hex: "#059669", bg: "#ECFDF5", bd: "#A7F3D0" },
+        { hex: "#7C3AED", bg: "#F5F3FF", bd: "#DDD6FE" },
+        { hex: "#D97706", bg: "#FFFBEB", bd: "#FDE68A" },
+        { hex: "#E11D48", bg: "#FFF1F2", bd: "#FECDD3" },
+        { hex: "#0891B2", bg: "#ECFEFF", bd: "#A5F3FC" },
+        { hex: "#4F46E5", bg: "#EEF2FF", bd: "#C7D2FE" },
+        { hex: "#0D9488", bg: "#F0FDFA", bd: "#99F6E4" }
+      ];
+      var priorityRank = { high: 0, medium: 1, low: 2 };
+      var priorityLabel = { high: "상", medium: "중", low: "하" };
+      var weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      var selectedPriority = "medium";
+      var isGroupMode = false;
+      var activeFilter = "all";
+      var courseFilter = "all";
+      var searchQuery = "";
+      var showCalendar = true;
+      var editingId = null;
+      var pendingAction = null;
+      var parsedCandidates = [];
+      var toastTimer = null;
+
+      function toDateStr(d) {
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      }
+
+      function addDays(offset) {
+        var d = new Date(); d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + offset);
+        return toDateStr(d);
+      }
+
+      function createSeedData() {
+        var now = Date.now();
+        return [
+          { id: "seed-1", course: "운영체제", title: "프로세스 스케줄링 시뮬레이터 구현 및 보고서", dueDate: addDays(0), priority: "high", memo: "소스코드 ZIP + 결과 분석 PDF 함께 LMS 업로드", completed: false, createdAt: now - 5000 },
+          { id: "seed-2", course: "데이터베이스", title: "ER 다이어그램 정규화(3NF/BCNF) 실습 과제", dueDate: addDays(2), priority: "high", memo: "ERDCloud 내보내기 이미지 첨부 필수", completed: false, createdAt: now - 4000 },
+          { id: "seed-3", course: "영어회화 II", title: "Week 11 프레젠테이션 스크립트 초안 제출", dueDate: addDays(3), priority: "medium", completed: false, createdAt: now - 3000 },
+          {
+            id: "seed-4", course: "소프트웨어공학", title: "팀 프로젝트 유스케이스 명세서 및 회의록", dueDate: addDays(5), priority: "high",
+            isGroupProject: true,
+            teamMembers: [
+              { id: "tm-1", name: "김민준", role: "유스케이스 다이어그램 작성" },
+              { id: "tm-2", name: "이서연", role: "요구사항 기능 명세서" },
+              { id: "tm-3", name: "본인", role: "회의록 정리 및 최종 제출" }
+            ],
+            completed: false, createdAt: now - 2000
+          },
+          { id: "seed-5", course: "선형대수학", title: "Chapter 5 고유값·고유벡터 연습문제 풀이", dueDate: addDays(9), priority: "low", completed: false, createdAt: now - 1000 },
+          { id: "seed-6", course: "컴퓨터네트워크", title: "Wireshark TCP 패킷 분석 리포트", dueDate: addDays(1), priority: "medium", completed: true, createdAt: now - 6000 }
+        ];
+      }
+
+      function loadJson(key, fallback) {
+        try {
+          var raw = localStorage.getItem(key);
+          if (raw === null) {
+            localStorage.setItem(key, JSON.stringify(fallback));
+            return JSON.parse(JSON.stringify(fallback));
+          }
+          return JSON.parse(raw);
+        } catch (e) { return JSON.parse(JSON.stringify(fallback)); }
+      }
+      function saveJson(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+      var items = loadJson(STORAGE_KEY, createSeedData());
+      if (!Array.isArray(items)) items = [];
+      var courses = loadJson(COURSES_KEY, DEFAULT_COURSES);
+      if (!Array.isArray(courses)) courses = [];
+      var courseMemos = loadJson(COURSE_MEMOS_KEY, DEFAULT_COURSE_MEMOS);
+      if (!courseMemos || typeof courseMemos !== "object" || Array.isArray(courseMemos)) courseMemos = {};
+
+      function showToast(msg) {
+        var el = document.getElementById("toastBox");
+        el.textContent = msg;
+        el.classList.add("show");
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { el.classList.remove("show"); }, 3500);
+      }
+
+      function getColor(course) {
+        var idx = courses.indexOf(course);
+        if (idx === -1) {
+          var h = 0;
+          for (var i = 0; i < course.length; i++) h = (h * 31 + course.charCodeAt(i)) >>> 0;
+          idx = h;
+        }
+        return PALETTE[idx % PALETTE.length];
+      }
+
+      function getWeekDays() {
+        var now = new Date(); now.setHours(0, 0, 0, 0);
+        var todayStr = toDateStr(now);
+        var mon = new Date(now);
+        mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+        var res = [];
+        for (var i = 0; i < 7; i++) {
+          var d = new Date(mon); d.setDate(mon.getDate() + i);
+          var ds = toDateStr(d);
+          res.push({ dateStr: ds, label: weekdays[d.getDay()], md: (d.getMonth() + 1) + "/" + d.getDate(), isToday: ds === todayStr });
+        }
+        return res;
+      }
+
+      function isInThisWeek(dateStr) {
+        var days = getWeekDays();
+        return dateStr >= days[0].dateStr && dateStr <= days[6].dateStr;
+      }
+
+      function diffDays(dateStr) {
+        var now = new Date(); now.setHours(0, 0, 0, 0);
+        var p = dateStr.split("-").map(Number);
+        var due = new Date(p[0], p[1] - 1, p[2], 0, 0, 0, 0);
+        return Math.round((due.getTime() - now.getTime()) / 86400000);
+      }
+
+      function formatDateKo(dateStr) {
+        var p = dateStr.split("-").map(Number);
+        var d = new Date(p[0], p[1] - 1, p[2]);
+        return (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + weekdays[d.getDay()] + ")";
+      }
+
+      function sortItems(list) {
+        return list.slice().sort(function(a, b) {
+          if (a.completed !== b.completed) return a.completed ? 1 : -1;
+          if (a.dueDate !== b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+          return (priorityRank[a.priority] - priorityRank[b.priority]) || (a.createdAt - b.createdAt);
+        });
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+      }
+
+      function openConfirm(title, desc, onOk, initialMemo) {
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmDesc").textContent = desc;
+        var memoEl = document.getElementById("memoModalInput");
+        var okBtn = document.getElementById("confirmOkBtn");
+        if (typeof initialMemo === "string") {
+          memoEl.style.display = "block";
+          memoEl.value = initialMemo;
+          okBtn.textContent = "저장하기";
+          okBtn.style.background = "#0F172A";
+          okBtn.style.borderColor = "#0F172A";
+        } else {
+          memoEl.style.display = "none";
+          memoEl.value = "";
+          okBtn.textContent = "삭제하기";
+          okBtn.style.background = "#DC2626";
+          okBtn.style.borderColor = "#DC2626";
+        }
+        pendingAction = onOk;
+        document.getElementById("confirmModal").classList.add("open");
+      }
+
+      function closeConfirm() {
+        pendingAction = null;
+        document.getElementById("confirmModal").classList.remove("open");
+      }
+
+      function render() {
+        var sorted = sortItems(items);
+        var activeCount = items.filter(function(i) { return !i.completed; }).length;
+        var urgentCount = items.filter(function(i) { return !i.completed && diffDays(i.dueDate) <= 3; }).length;
+        var weekCount = items.filter(function(i) { return !i.completed && isInThisWeek(i.dueDate); }).length;
+        var doneCount = items.filter(function(i) { return i.completed; }).length;
+
+        document.getElementById("statsBar").innerHTML =
+          '<div class="stat-item"><div class="stat-label">남은 과제</div><div class="stat-val">' + activeCount + '</div></div>' +
+          '<div class="stat-item"><div class="stat-label">D-3 이내 긴급</div><div class="stat-val danger">' + urgentCount + '</div></div>' +
+          '<div class="stat-item"><div class="stat-label">이번 주 마감</div><div class="stat-val">' + weekCount + '</div></div>' +
+          '<div class="stat-item"><div class="stat-label">제출 완료</div><div class="stat-val">' + doneCount + '</div></div>';
+
+        document.getElementById("courseChips").innerHTML = courses.map(function(c) {
+          var clr = getColor(c);
+          return '<button type="button" class="course-chip" data-pick-course="' + escapeHtml(c) + '"><span class="swatch" style="background:' + clr.hex + '"></span>' + escapeHtml(c) + '</button>';
+        }).join("");
+
+        document.getElementById("courseManagerList").innerHTML = courses.length === 0
+          ? '<div style="font-size:12px;color:#64748B;">등록된 과목이 없습니다.</div>'
+          : courses.map(function(c) {
+              var clr = getColor(c);
+              var cm = courseMemos[c] || "";
+              return '<div class="course-row"><span style="display:inline-flex;align-items:center;gap:8px;font-weight:600;color:' + clr.hex + '"><span class="swatch" style="background:' + clr.hex + '"></span>' + escapeHtml(c) + '</span><span><button type="button" class="txt-btn" data-course-memo="' + escapeHtml(c) + '">메모</button><button type="button" class="txt-btn del" data-remove-course="' + escapeHtml(c) + '">삭제</button></span></div>' + (cm ? '<div class="course-memo-sub">' + escapeHtml(cm) + '</div>' : '');
+            }).join("");
+
+        document.getElementById("courseFilterRow").innerHTML =
+          '<button type="button" class="btn ' + (courseFilter === "all" ? "active" : "") + '" data-cfilter="all" style="flex-shrink:0;">전체 과목</button>' +
+          courses.map(function(c) {
+            var clr = getColor(c);
+            var act = courseFilter === c;
+            return '<button type="button" class="btn ' + (act ? "active" : "") + '" data-cfilter="' + escapeHtml(c) + '" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><span class="swatch" style="background:' + (act ? "#fff" : clr.hex) + '"></span>' + escapeHtml(c) + '</button>';
+          }).join("");
+
+        var bannerEl = document.getElementById("courseMemoBanner");
+        if (courseFilter === "all") {
+          bannerEl.style.display = "none";
+        } else {
+          bannerEl.style.display = "block";
+          var bclr = getColor(courseFilter);
+          var bmemo = courseMemos[courseFilter] || "";
+          bannerEl.innerHTML =
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">' +
+              '<span style="display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:' + bclr.hex + '"><span class="swatch" style="background:' + bclr.hex + '"></span>' + escapeHtml(courseFilter) + ' 과목 메모</span>' +
+              '<button type="button" class="txt-btn" style="color:#1D4ED8;" data-course-memo="' + escapeHtml(courseFilter) + '">' + (bmemo ? "메모 수정" : "메모 추가") + '</button>' +
+            '</div>' +
+            '<div style="font-size:12.5px;color:' + (bmemo ? "#334155" : "#94A3B8") + ';white-space:pre-wrap;">' + escapeHtml(bmemo || "강의실, 제출 규정 등 과목 메모를 남겨 보세요.") + '</div>';
+        }
+
+        var calEl = document.getElementById("weekCal");
+        calEl.style.display = showCalendar ? "block" : "none";
+        if (showCalendar) {
+          var weekDays = getWeekDays();
+          calEl.innerHTML =
+            '<div class="week-cal-head"><span>이번 주 마감 달력 (' + weekDays[0].md + ' – ' + weekDays[6].md + ')</span></div>' +
+            '<div class="week-grid">' +
+            weekDays.map(function(day) {
+              var dayItems = sorted.filter(function(it) { return it.dueDate === day.dateStr && (courseFilter === "all" || it.course === courseFilter); });
+              return '<div class="week-col' + (day.isToday ? ' today' : '') + '">' +
+                '<div class="week-col-head"><span>' + day.label + '</span><span>' + day.md + (day.isToday ? ' 오늘' : '') + '</span></div>' +
+                '<div class="week-col-body">' +
+                (dayItems.length === 0 ? '<div style="font-size:11px;color:#94A3B8;">—</div>' : dayItems.map(function(it) {
+                  var clr = getColor(it.course);
+                  return '<div class="week-item' + (it.completed ? ' completed' : '') + '" style="background:' + clr.bg + ';border-color:' + clr.bd + '" data-toggle="' + it.id + '">' +
+                    '<div style="font-weight:700;color:' + clr.hex + '">' + escapeHtml(it.course) + '</div>' +
+                    '<div>' + escapeHtml(it.title) + '</div>' +
+                  '</div>';
+                }).join("")) +
+                '</div></div>';
+            }).join("") +
+            '</div>';
+        }
+
+        var q = searchQuery.trim().toLowerCase();
+        var filtered = sorted.filter(function(item) {
+          if (activeFilter === "week" && !isInThisWeek(item.dueDate)) return false;
+          if (activeFilter === "completed" && !item.completed) return false;
+          if (courseFilter !== "all" && item.course !== courseFilter) return false;
+          if (q) {
+            var teamTxt = (item.teamMembers || []).map(function(m) { return m.name + " " + m.role; }).join(" ");
+            var hay = (item.course + " " + item.title + " " + (item.memo || "") + " " + teamTxt).toLowerCase();
+            if (hay.indexOf(q) === -1) return false;
+          }
+          return true;
+        });
+
+        var grid = document.getElementById("cardsGrid");
+        if (filtered.length === 0) {
+          grid.innerHTML = '<div class="empty">표시할 과제가 없습니다.</div>';
+          return;
+        }
+
+        grid.innerHTML = filtered.map(function(item) {
+          var d = diffDays(item.dueDate);
+          var urgent = !item.completed && d <= 3;
+          var clr = getColor(item.course);
+          var ddayText = item.completed ? "완료" : (d === 0 ? "D-Day" : (d > 0 ? "D-" + d : "D+" + Math.abs(d)));
+          var subText = item.completed ? "제출 완료" : (d < 0 ? "마감 지남" : (d === 0 ? "오늘 마감" : (d <= 3 ? "마감 임박" : "예정")));
+          var cls = "card" + (item.completed ? " completed" : (urgent ? " urgent" : ""));
+          var teamHtml = "";
+          if (item.isGroupProject) {
+            var members = Array.isArray(item.teamMembers) ? item.teamMembers.filter(function(m) { return (m.name || "").trim() || (m.role || "").trim(); }) : [];
+            teamHtml = '<div style="margin-top:8px;">' +
+              '<div style="font-size:11.5px;font-weight:700;color:#1D4ED8;margin-bottom:4px;">조별과제 분담표' + (members.length ? ' · ' + members.length + '명' : '') + '</div>' +
+              (members.length ? '<div class="team-box">' + members.map(function(m) {
+                return '<div class="team-row"><strong style="color:#0F172A;">' + escapeHtml(m.name || "미정") + '</strong><span style="color:#475569;">' + escapeHtml(m.role || "역할 미입력") + '</span></div>';
+              }).join("") + '</div>' : '<div style="font-size:11.5px;color:#94A3B8;">조원·역할 미입력</div>') +
+            '</div>';
+          }
+          return '<article class="' + cls + '">' +
+            '<div>' +
+              '<div class="card-top">' +
+                '<div class="check-wrap">' +
+                  '<button type="button" class="check-btn" data-toggle="' + item.id + '" aria-label="완료 체크">' + (item.completed ? "✓" : "") + '</button>' +
+                  '<div class="card-title">' + escapeHtml(item.title) + '</div>' +
+                '</div>' +
+                '<div class="dday-box">' +
+                  '<div class="dday-val' + (urgent ? ' urgent' : '') + '">' + ddayText + '</div>' +
+                  '<div class="dday-sub' + (urgent ? ' urgent' : '') + '">' + subText + '</div>' +
+                '</div>' +
+              '</div>' +
+              (item.memo ? '<div class="memo-text">' + escapeHtml(item.memo) + '</div>' : '') +
+              teamHtml +
+            '</div>' +
+            '<div class="card-footer">' +
+              '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+                '<span class="swatch" style="background:' + (item.completed ? '#CBD5E1' : clr.hex) + '"></span>' +
+                '<strong style="color:' + (item.completed ? '#94A3B8' : clr.hex) + '">' + escapeHtml(item.course) + '</strong>' +
+                '<span>· ' + formatDateKo(item.dueDate) + ' · 중요도 ' + priorityLabel[item.priority] + (item.isGroupProject ? ' · 조별과제' : '') + '</span>' +
+              '</div>' +
+              '<span style="flex-shrink:0;"><button type="button" class="txt-btn" data-item-memo="' + item.id + '">메모</button><button type="button" class="txt-btn" data-edit="' + item.id + '">수정</button><button type="button" class="txt-btn del" data-del="' + item.id + '">삭제</button></span>' +
+            '</div>' +
+          '</article>';
+        }).join("");
+      }
+
+      function addTeamRow(name, role) {
+        var row = document.createElement("div");
+        row.className = "team-form-row";
+        row.innerHTML = '<input type="text" class="tm-name" placeholder="이름" value="' + escapeHtml(name || "") + '" />' +
+          '<input type="text" class="tm-role" placeholder="담당 역할" value="' + escapeHtml(role || "") + '" />' +
+          '<button type="button" class="txt-btn del tm-del" style="padding:0;">✕</button>';
+        row.querySelector(".tm-del").addEventListener("click", function() {
+          var box = document.getElementById("teamRows");
+          if (box.children.length > 1) box.removeChild(row);
+          else { row.querySelector(".tm-name").value = ""; row.querySelector(".tm-role").value = ""; }
+        });
+        document.getElementById("teamRows").appendChild(row);
+      }
+
+      function resetForm() {
+        editingId = null;
+        document.getElementById("formHeading").textContent = "새 과제 등록";
+        document.getElementById("submitBtn").textContent = "과제 추가하기";
+        document.getElementById("cancelEditBtn").style.display = "none";
+        document.getElementById("titleInput").value = "";
+        document.getElementById("memoInput").value = "";
+        document.getElementById("dueInput").value = toDateStr(new Date());
+        selectedPriority = "medium";
+        document.querySelectorAll("#priorityGroup .seg-btn").forEach(function(b) { b.classList.toggle("active", b.getAttribute("data-val") === "medium"); });
+        isGroupMode = false;
+        document.querySelectorAll("#typeGroup .seg-btn").forEach(function(b) { b.classList.toggle("active", b.getAttribute("data-type") === "single"); });
+        document.getElementById("teamBox").style.display = "none";
+        document.getElementById("teamRows").innerHTML = "";
+        addTeamRow("", ""); addTeamRow("", "");
+      }
+
+      function parseSyllabusLines(text, defaultCourse) {
+        var year = new Date().getFullYear();
+        var results = [];
+        var lines = text.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+        lines.forEach(function(line, idx) {
+          var dueDate = "";
+          var cleaned = line;
+          var iso = line.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+          var mdSlash = line.match(/(\d{1,2})[./](\d{1,2})/);
+          var mdKo = line.match(/(?:(\d{4})년\s*)?(\d{1,2})월\s*(\d{1,2})일/);
+          if (iso) {
+            dueDate = iso[1] + "-" + String(Number(iso[2])).padStart(2, "0") + "-" + String(Number(iso[3])).padStart(2, "0");
+            cleaned = cleaned.replace(iso[0], " ");
+          } else if (mdKo) {
+            var y = mdKo[1] || String(year);
+            dueDate = y + "-" + String(Number(mdKo[2])).padStart(2, "0") + "-" + String(Number(mdKo[3])).padStart(2, "0");
+            cleaned = cleaned.replace(mdKo[0], " ");
+          } else if (mdSlash) {
+            dueDate = year + "-" + String(Number(mdSlash[1])).padStart(2, "0") + "-" + String(Number(mdSlash[2])).padStart(2, "0");
+            cleaned = cleaned.replace(mdSlash[0], " ");
+          }
+          if (!dueDate) return;
+          var course = defaultCourse || courses[0] || "과목 미정";
+          var bracket = cleaned.match(/^\[([^\]]+)\]/);
+          if (bracket) {
+            course = bracket[1].trim();
+            cleaned = cleaned.slice(bracket[0].length).trim();
+          } else if (line.indexOf(",") !== -1) {
+            var csvParts = line.split(",").map(function(s) { return s.trim(); });
+            if (csvParts.length >= 2 && csvParts[0].length <= 24) {
+              course = csvParts[0];
+              cleaned = csvParts[1];
+            }
+          } else {
+            for (var ci = 0; ci < courses.length; ci++) {
+              if (cleaned.indexOf(courses[ci]) === 0) {
+                course = courses[ci];
+                cleaned = cleaned.slice(courses[ci].length).trim();
+                break;
+              }
+            }
+          }
+          cleaned = cleaned.replace(/(마감|제출|까지|,)/g, " ").replace(/\s+/g, " ").trim();
+          results.push({ id: "cand-" + idx, course: course, title: cleaned || "과제", dueDate: dueDate, priority: "medium" });
+        });
+        return results;
+      }
+
+      function renderSyllabusPreview() {
+        var box = document.getElementById("syllabusPreview");
+        if (parsedCandidates.length === 0) { box.innerHTML = ""; return; }
+        box.innerHTML =
+          '<div style="font-size:12.5px;font-weight:700;margin-bottom:8px;">추출된 과제 ' + parsedCandidates.length + '건</div>' +
+          parsedCandidates.map(function(c, i) {
+            return '<div style="display:grid;grid-template-columns:100px 1fr 125px;gap:6px;margin-bottom:6px;">' +
+              '<input type="text" data-cand-course="' + i + '" value="' + escapeHtml(c.course) + '" />' +
+              '<input type="text" data-cand-title="' + i + '" value="' + escapeHtml(c.title) + '" />' +
+              '<input type="date" data-cand-date="' + i + '" value="' + c.dueDate + '" />' +
+            '</div>';
+          }).join("") +
+          '<button type="button" id="addAllCandidatesBtn" class="btn-primary" style="margin-top:8px;">모두 추가 (' + parsedCandidates.length + '건)</button>';
+      }
+
+      document.getElementById("priorityGroup").addEventListener("click", function(e) {
+        var btn = e.target.closest("[data-val]");
+        if (!btn) return;
+        selectedPriority = btn.getAttribute("data-val");
+        document.querySelectorAll("#priorityGroup .seg-btn").forEach(function(b) { b.classList.toggle("active", b === btn); });
+      });
+
+      document.getElementById("typeGroup").addEventListener("click", function(e) {
+        var btn = e.target.closest("[data-type]");
+        if (!btn) return;
+        isGroupMode = btn.getAttribute("data-type") === "group";
+        document.querySelectorAll("#typeGroup .seg-btn").forEach(function(b) { b.classList.toggle("active", b === btn); });
+        document.getElementById("teamBox").style.display = isGroupMode ? "block" : "none";
+        if (isGroupMode && document.getElementById("teamRows").children.length === 0) { addTeamRow("", ""); addTeamRow("", ""); }
+      });
+
+      document.getElementById("addMemberBtn").addEventListener("click", function() { addTeamRow("", ""); });
+      document.getElementById("cancelEditBtn").addEventListener("click", resetForm);
+
+      document.getElementById("filterRow").addEventListener("click", function(e) {
+        var btn = e.target.closest("[data-filter]");
+        if (!btn) return;
+        activeFilter = btn.getAttribute("data-filter");
+        document.querySelectorAll("#filterRow .tab-btn").forEach(function(b) { b.classList.toggle("active", b === btn); });
+        render();
+      });
+
+      document.getElementById("toggleCalBtn").addEventListener("click", function() {
+        showCalendar = !showCalendar;
+        this.textContent = showCalendar ? "주간 달력 숨기기" : "주간 달력 보기";
+        this.classList.toggle("active", showCalendar);
+        render();
+      });
+
+      document.getElementById("searchInput").addEventListener("input", function(e) {
+        searchQuery = e.target.value;
+        render();
+      });
+
+      document.getElementById("courseChips").addEventListener("click", function(e) {
+        var btn = e.target.closest("[data-pick-course]");
+        if (btn) document.getElementById("courseInput").value = btn.getAttribute("data-pick-course");
+      });
+
+      document.getElementById("courseFilterRow").addEventListener("click", function(e) {
+        var btn = e.target.closest("[data-cfilter]");
+        if (!btn) return;
+        var val = btn.getAttribute("data-cfilter");
+        courseFilter = (courseFilter === val && val !== "all") ? "all" : val;
+        render();
+      });
+
+      document.getElementById("courseForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        var val = document.getElementById("newCourseInput").value.trim();
+        if (!val || courses.indexOf(val) !== -1) return;
+        courses.push(val);
+        saveJson(COURSES_KEY, courses);
+        document.getElementById("newCourseInput").value = "";
+        showToast('"' + val + '" 과목을 추가했습니다.');
+        render();
+      });
+
+      document.addEventListener("click", function(e) {
+        var cmBtn = e.target.closest("[data-course-memo]");
+        if (cmBtn) {
+          var cname = cmBtn.getAttribute("data-course-memo");
+          openConfirm(cname + " 과목 메모", "", function() {
+            var val = document.getElementById("memoModalInput").value.trim();
+            if (val) courseMemos[cname] = val; else delete courseMemos[cname];
+            saveJson(COURSE_MEMOS_KEY, courseMemos);
+            showToast("과목 메모를 저장했습니다.");
+            render();
+          }, courseMemos[cname] || "");
+          return;
+        }
+        var rmBtn = e.target.closest("[data-remove-course]");
+        if (rmBtn) {
+          var rname = rmBtn.getAttribute("data-remove-course");
+          courses = courses.filter(function(c) { return c !== rname; });
+          delete courseMemos[rname];
+          if (courseFilter === rname) courseFilter = "all";
+          saveJson(COURSES_KEY, courses);
+          saveJson(COURSE_MEMOS_KEY, courseMemos);
+          showToast('"' + rname + '" 과목을 삭제했습니다.');
+          render();
+          return;
+        }
+        var toggleBtn = e.target.closest("[data-toggle]");
+        if (toggleBtn) {
+          var id = toggleBtn.getAttribute("data-toggle");
+          items = items.map(function(it) { return it.id === id ? Object.assign({}, it, { completed: !it.completed }) : it; });
+          saveJson(STORAGE_KEY, items);
+          render();
+          return;
+        }
+        var itemMemoBtn = e.target.closest("[data-item-memo]");
+        if (itemMemoBtn) {
+          var mid = itemMemoBtn.getAttribute("data-item-memo");
+          var mt = items.find(function(it) { return it.id === mid; });
+          if (!mt) return;
+          openConfirm("과제 메모", "[" + mt.course + "] " + mt.title, function() {
+            var val = document.getElementById("memoModalInput").value.trim();
+            items = items.map(function(it) { return it.id === mid ? Object.assign({}, it, { memo: val || undefined }) : it; });
+            saveJson(STORAGE_KEY, items);
+            showToast("과제 메모를 저장했습니다.");
+            render();
+          }, mt.memo || "");
+          return;
+        }
+        var editBtn = e.target.closest("[data-edit]");
+        if (editBtn) {
+          var eid = editBtn.getAttribute("data-edit");
+          var et = items.find(function(it) { return it.id === eid; });
+          if (!et) return;
+          editingId = eid;
+          document.getElementById("formHeading").textContent = "과제 정보 수정";
+          document.getElementById("submitBtn").textContent = "수정 내용 저장";
+          document.getElementById("cancelEditBtn").style.display = "inline-block";
+          document.getElementById("courseInput").value = et.course;
+          document.getElementById("titleInput").value = et.title;
+          document.getElementById("dueInput").value = et.dueDate;
+          document.getElementById("memoInput").value = et.memo || "";
+          selectedPriority = et.priority;
+          document.querySelectorAll("#priorityGroup .seg-btn").forEach(function(b) { b.classList.toggle("active", b.getAttribute("data-val") === et.priority); });
+          isGroupMode = !!et.isGroupProject;
+          document.querySelectorAll("#typeGroup .seg-btn").forEach(function(b) { b.classList.toggle("active", b.getAttribute("data-type") === (isGroupMode ? "group" : "single")); });
+          document.getElementById("teamBox").style.display = isGroupMode ? "block" : "none";
+          document.getElementById("teamRows").innerHTML = "";
+          if (isGroupMode && Array.isArray(et.teamMembers) && et.teamMembers.length) {
+            et.teamMembers.forEach(function(m) { addTeamRow(m.name, m.role); });
+          } else { addTeamRow("", ""); addTeamRow("", ""); }
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+        var delBtn = e.target.closest("[data-del]");
+        if (delBtn) {
+          var delId = delBtn.getAttribute("data-del");
+          var target = items.find(function(it) { return it.id === delId; });
+          if (!target) return;
+          openConfirm("과제를 삭제할까요?", "[" + target.course + "] \"" + target.title + "\" 과제를 삭제합니다.", function() {
+            items = items.filter(function(it) { return it.id !== delId; });
+            if (editingId === delId) resetForm();
+            saveJson(STORAGE_KEY, items);
+            showToast("과제를 삭제했습니다.");
+            render();
+          });
+          return;
+        }
+        if (e.target.id === "addAllCandidatesBtn") {
+          document.querySelectorAll("[data-cand-course]").forEach(function(el) {
+            var i = Number(el.getAttribute("data-cand-course"));
+            parsedCandidates[i].course = el.value.trim() || "과목 미정";
+          });
+          document.querySelectorAll("[data-cand-title]").forEach(function(el) {
+            var i = Number(el.getAttribute("data-cand-title"));
+            parsedCandidates[i].title = el.value.trim() || "과제";
+          });
+          document.querySelectorAll("[data-cand-date]").forEach(function(el) {
+            var i = Number(el.getAttribute("data-cand-date"));
+            parsedCandidates[i].dueDate = el.value;
+          });
+          var base = Date.now();
+          parsedCandidates.forEach(function(c, idx) {
+            if (courses.indexOf(c.course) === -1) courses.push(c.course);
+            items.push({ id: "task-" + base + "-" + idx, course: c.course, title: c.title, dueDate: c.dueDate, priority: "medium", completed: false, createdAt: base + idx });
+          });
+          saveJson(COURSES_KEY, courses);
+          saveJson(STORAGE_KEY, items);
+          document.getElementById("syllabusModal").classList.remove("open");
+          showToast(parsedCandidates.length + "건의 과제를 추가했습니다.");
+          parsedCandidates = [];
+          render();
+        }
+      });
+
+      document.getElementById("taskForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        var course = document.getElementById("courseInput").value.trim();
+        var title = document.getElementById("titleInput").value.trim();
+        var dueDate = document.getElementById("dueInput").value;
+        var memo = document.getElementById("memoInput").value.trim();
+        if (!course || !title || !dueDate) return;
+        if (courses.indexOf(course) === -1) { courses.push(course); saveJson(COURSES_KEY, courses); }
+        var members = [];
+        if (isGroupMode) {
+          document.querySelectorAll("#teamRows .team-form-row").forEach(function(r, idx) {
+            var n = r.querySelector(".tm-name").value.trim();
+            var rl = r.querySelector(".tm-role").value.trim();
+            if (n || rl) members.push({ id: "tm-" + Date.now() + "-" + idx, name: n, role: rl });
+          });
+        }
+        if (editingId) {
+          items = items.map(function(it) {
+            return it.id === editingId ? Object.assign({}, it, {
+              course: course, title: title, dueDate: dueDate, priority: selectedPriority,
+              memo: memo || undefined, isGroupProject: isGroupMode || undefined, teamMembers: isGroupMode ? members : undefined
+            }) : it;
+          });
+          showToast("과제를 수정했습니다.");
+        } else {
+          items.push({
+            id: "task-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+            course: course, title: title, dueDate: dueDate, priority: selectedPriority,
+            memo: memo || undefined, isGroupProject: isGroupMode || undefined, teamMembers: isGroupMode ? members : undefined,
+            completed: false, createdAt: Date.now()
+          });
+          showToast("새 과제를 추가했습니다.");
+        }
+        saveJson(STORAGE_KEY, items);
+        resetForm();
+        render();
+      });
+
+      document.getElementById("exportIcsBtn").addEventListener("click", function() {
+        var pending = items.filter(function(it) { return !it.completed && /^\d{4}-\d{2}-\d{2}$/.test(it.dueDate); });
+        if (pending.length === 0) { showToast("내보낼 미완료 과제가 없습니다."); return; }
+        function escIcs(s) { return String(s).replace(/\\/g,"\\\\").replace(/\r?\n/g,"\\n").replace(/;/g,"\\;").replace(/,/g,"\\,"); }
+        var now = new Date();
+        var stamp = now.getUTCFullYear() + String(now.getUTCMonth()+1).padStart(2,"0") + String(now.getUTCDate()).padStart(2,"0") + "T" + String(now.getUTCHours()).padStart(2,"0") + String(now.getUTCMinutes()).padStart(2,"0") + String(now.getUTCSeconds()).padStart(2,"0") + "Z";
+        var lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//MagamNote//KO","CALSCALE:GREGORIAN"];
+        pending.forEach(function(it) {
+          var p = it.dueDate.split("-").map(Number);
+          var nextD = new Date(p[0], p[1]-1, p[2]+1);
+          var dtEnd = nextD.getFullYear() + String(nextD.getMonth()+1).padStart(2,"0") + String(nextD.getDate()).padStart(2,"0");
+          var summary = "[" + it.course + "] " + it.title;
+          lines.push("BEGIN:VEVENT");
+          lines.push("UID:" + it.id + "@magamnote.local");
+          lines.push("DTSTAMP:" + stamp);
+          lines.push("DTSTART;VALUE=DATE:" + it.dueDate.replace(/-/g,""));
+          lines.push("DTEND;VALUE=DATE:" + dtEnd);
+          lines.push("SUMMARY:" + escIcs(summary));
+          lines.push("BEGIN:VALARM");
+          lines.push("ACTION:DISPLAY");
+          lines.push("DESCRIPTION:" + escIcs("내일 마감: " + summary));
+          lines.push("TRIGGER:-P1D");
+          lines.push("END:VALARM");
+          lines.push("END:VEVENT");
+        });
+        lines.push("END:VCALENDAR");
+        var blob = new Blob([lines.join("\r\n") + "\r\n"], { type: "text/calendar;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a"); a.href = url; a.download = "마감노트_과제일정.ics";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+        showToast("미완료 과제 " + pending.length + "건을 .ics 파일로 내보냈습니다.");
+      });
+
+      document.getElementById("openSyllabusBtn").addEventListener("click", function() {
+        document.getElementById("syllabusModal").classList.add("open");
+      });
+      document.getElementById("closeSyllabusBtn").addEventListener("click", function() {
+        document.getElementById("syllabusModal").classList.remove("open");
+      });
+      document.getElementById("csvFileInput").addEventListener("change", function(e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function() {
+          document.getElementById("syllabusText").value = String(reader.result || "");
+        };
+        reader.readAsText(file, "UTF-8");
+      });
+      document.getElementById("analyzeSyllabusBtn").addEventListener("click", function() {
+        var text = document.getElementById("syllabusText").value;
+        var defCourse = document.getElementById("syllabusCourseInput").value.trim();
+        parsedCandidates = parseSyllabusLines(text, defCourse);
+        if (parsedCandidates.length === 0) showToast("날짜가 포함된 과제 문장을 찾지 못했습니다.");
+        renderSyllabusPreview();
+      });
+
+      document.getElementById("resetSampleBtn").addEventListener("click", function() {
+        items = createSeedData();
+        courses = DEFAULT_COURSES.slice();
+        courseMemos = Object.assign({}, DEFAULT_COURSE_MEMOS);
+        saveJson(STORAGE_KEY, items);
+        saveJson(COURSES_KEY, courses);
+        saveJson(COURSE_MEMOS_KEY, courseMemos);
+        activeFilter = "all"; courseFilter = "all"; searchQuery = "";
+        document.getElementById("searchInput").value = "";
+        document.querySelectorAll("#filterRow .tab-btn").forEach(function(b) { b.classList.toggle("active", b.getAttribute("data-filter") === "all"); });
+        showToast("예시 데이터로 초기화했습니다.");
+        render();
+      });
+
+      document.getElementById("clearAllBtn").addEventListener("click", function() {
+        if (items.length === 0) return;
+        openConfirm("모든 과제를 비울까요?", "현재 등록된 과제 " + items.length + "건이 모두 삭제됩니다.", function() {
+          items = [];
+          saveJson(STORAGE_KEY, items);
+          showToast("모든 과제를 비웠습니다.");
+          render();
+        });
+      });
+
+      document.getElementById("confirmCancelBtn").addEventListener("click", closeConfirm);
+      document.getElementById("confirmOkBtn").addEventListener("click", function() {
+        if (pendingAction) pendingAction();
+        closeConfirm();
+      });
+
+      resetForm();
+      render();
+    })();
+  </script>
+</body>
+</html>
